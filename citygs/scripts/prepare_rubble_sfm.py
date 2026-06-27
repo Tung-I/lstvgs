@@ -22,7 +22,7 @@ RUBBLE_DIR = Path("/work/pi_rsitaram_umass_edu/tungi/datasets/rubble")
 CITYGS_COLMAP_DIR = Path(
     "/work/pi_rsitaram_umass_edu/tungi/datasets/cityGSdata/colmap_results/rubble/train/sparse/0"
 )
-OUT_DIR = Path("/home/tungichen_umass_edu/lctvgs-copy/datasets/rubble_sfm")
+OUT_DIR = Path("/home/tungichen_umass_edu/lstvgs-copy/datasets/rubble_sfm")
 
 
 def read_points3d_bin(path):

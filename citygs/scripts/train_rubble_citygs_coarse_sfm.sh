@@ -5,25 +5,25 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=12:00:00
-#SBATCH --output=/work/pi_rsitaram_umass_edu/tungi/lctvgs/results/rubble_citygs_coarse_sfm/slurm_%j.log
-#SBATCH --error=/work/pi_rsitaram_umass_edu/tungi/lctvgs/results/rubble_citygs_coarse_sfm/slurm_%j.log
+#SBATCH --output=/work/pi_rsitaram_umass_edu/tungi/lstvgs/results/rubble_citygs_coarse_sfm/slurm_%j.log
+#SBATCH --error=/work/pi_rsitaram_umass_edu/tungi/lstvgs/results/rubble_citygs_coarse_sfm/slurm_%j.log
 
 set -e
 
 WORK_DIR="/work/pi_rsitaram_umass_edu/tungi"
 CONDA_ENV="$WORK_DIR/conda/envs/gsplat"
 CUDA_DIR="$WORK_DIR/cuda-13.0"
-EXAMPLES="$WORK_DIR/lctvgs/gsplat/examples"
+EXAMPLES="$WORK_DIR/lstvgs/gsplat/examples"
 # rubble_sfm: same images as rubble, but with COLMAP-triangulated points3D.txt
-SFM_DATA_DIR="$WORK_DIR/lctvgs/datasets/rubble_sfm"
-RESULT_DIR="$WORK_DIR/lctvgs/results/rubble_citygs_coarse_sfm"
+SFM_DATA_DIR="$WORK_DIR/lstvgs/datasets/rubble_sfm"
+RESULT_DIR="$WORK_DIR/lstvgs/results/rubble_citygs_coarse_sfm"
 
 unset CC CXX
 export CUDAHOSTCXX="$CONDA_ENV/bin/g++"
 export CUDA_HOME="$CUDA_DIR"
 export PATH="$CONDA_ENV/bin:$CUDA_DIR/bin:$PATH"
 export LD_LIBRARY_PATH="$CONDA_ENV/lib:$CUDA_DIR/lib64:$LD_LIBRARY_PATH"
-export PYTHONPATH="$WORK_DIR/lctvgs/gsplat:$PYTHONPATH"
+export PYTHONPATH="$WORK_DIR/lstvgs/gsplat:$PYTHONPATH"
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 mkdir -p "$RESULT_DIR"

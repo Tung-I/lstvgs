@@ -5,14 +5,14 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=06:00:00
-#SBATCH --output=/work/pi_rsitaram_umass_edu/tungi/lctvgs/results/colmap_building/slurm_%j.log
-#SBATCH --error=/work/pi_rsitaram_umass_edu/tungi/lctvgs/results/colmap_building/slurm_%j.log
+#SBATCH --output=/work/pi_rsitaram_umass_edu/tungi/lstvgs/results/colmap_building/slurm_%j.log
+#SBATCH --error=/work/pi_rsitaram_umass_edu/tungi/lstvgs/results/colmap_building/slurm_%j.log
 
 set -e
 
 COLMAP_BIN="/work/pi_rsitaram_umass_edu/tungi/conda/envs/4dgs/bin/colmap"
 DATA_DIR="/work/pi_rsitaram_umass_edu/tungi/datasets/building"
-WORK_DIR="/work/pi_rsitaram_umass_edu/tungi/lctvgs"
+WORK_DIR="/work/pi_rsitaram_umass_edu/tungi/lstvgs"
 COLMAP_OUT="$WORK_DIR/results/colmap_building"
 # Synthetic "building_sfm" dataset that points to the same images but has SFM points
 SFM_DATA_DIR="$WORK_DIR/datasets/building_sfm"
@@ -119,9 +119,9 @@ echo "Triangulated 3D points: $N_POINTS"
 echo ""
 
 # ── Step 6: Build building_sfm dataset directory ─────────────────────────────
-# Creates a dataset directory within lctvgs/ that shares images with the
+# Creates a dataset directory within lstvgs/ that shares images with the
 # original dataset but has SFM points from triangulation. Training uses
-# this dir so we stay within lctvgs/ and don't modify the original dataset.
+# this dir so we stay within lstvgs/ and don't modify the original dataset.
 echo "=== Step 6: Building building_sfm dataset symlinks: $(date) ==="
 
 # Symlink image directories (read-only, no copy)

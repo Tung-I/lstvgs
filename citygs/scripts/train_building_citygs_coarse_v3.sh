@@ -5,24 +5,24 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=24:00:00
-#SBATCH --output=/work/pi_rsitaram_umass_edu/tungi/lctvgs/results/building_citygs_coarse_v3/slurm_%j.log
-#SBATCH --error=/work/pi_rsitaram_umass_edu/tungi/lctvgs/results/building_citygs_coarse_v3/slurm_%j.log
+#SBATCH --output=/work/pi_rsitaram_umass_edu/tungi/lstvgs/results/building_citygs_coarse_v3/slurm_%j.log
+#SBATCH --error=/work/pi_rsitaram_umass_edu/tungi/lstvgs/results/building_citygs_coarse_v3/slurm_%j.log
 
 set -e
 
 WORK_DIR="/work/pi_rsitaram_umass_edu/tungi"
 CONDA_ENV="$WORK_DIR/conda/envs/gsplat"
 CUDA_DIR="$WORK_DIR/cuda-13.0"
-EXAMPLES="$WORK_DIR/lctvgs/gsplat/examples"
+EXAMPLES="$WORK_DIR/lstvgs/gsplat/examples"
 DATA_DIR="$WORK_DIR/datasets/building"
-RESULT_DIR="$WORK_DIR/lctvgs/results/building_citygs_coarse_v3"
+RESULT_DIR="$WORK_DIR/lstvgs/results/building_citygs_coarse_v3"
 
 unset CC CXX
 export CUDAHOSTCXX="$CONDA_ENV/bin/g++"
 export CUDA_HOME="$CUDA_DIR"
 export PATH="$CONDA_ENV/bin:$CUDA_DIR/bin:$PATH"
 export LD_LIBRARY_PATH="$CONDA_ENV/lib:$CUDA_DIR/lib64:$LD_LIBRARY_PATH"
-export PYTHONPATH="$WORK_DIR/lctvgs/gsplat:$PYTHONPATH"
+export PYTHONPATH="$WORK_DIR/lstvgs/gsplat:$PYTHONPATH"
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 mkdir -p "$RESULT_DIR"

@@ -14,17 +14,17 @@ export CUDAHOSTCXX="$CONDA_ENV/bin/g++"
 export CUDA_HOME="$CUDA_DIR"
 export PATH="$CONDA_ENV/bin:$CUDA_DIR/bin:$PATH"
 export LD_LIBRARY_PATH="$CONDA_ENV/lib:$CUDA_DIR/lib64:$LD_LIBRARY_PATH"
-export PYTHONPATH="$WORK_DIR/lctvgs/gsplat:$PYTHONPATH"
+export PYTHONPATH="$WORK_DIR/lstvgs/gsplat:$PYTHONPATH"
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-BLOCK_DIR="$WORK_DIR/lctvgs/results/rubble_citygs_blocks"
-MERGE_DIR="$WORK_DIR/lctvgs/results/rubble_citygs_merged_v2_pruned"
-PARTITION_DIR="$WORK_DIR/lctvgs/results/rubble_citygs_coarse/partition"
+BLOCK_DIR="$WORK_DIR/lstvgs/results/rubble_citygs_blocks"
+MERGE_DIR="$WORK_DIR/lstvgs/results/rubble_citygs_merged_v2_pruned"
+PARTITION_DIR="$WORK_DIR/lstvgs/results/rubble_citygs_coarse/partition"
 DATA_DIR="$WORK_DIR/datasets/rubble"
 
 mkdir -p "$MERGE_DIR"
 
-cd "$WORK_DIR/lctvgs"
+cd "$WORK_DIR/lstvgs"
 
 echo "=== Merge with spatial pruning: $(date) ==="
 python citygs/merge_citygs.py \

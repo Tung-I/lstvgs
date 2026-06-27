@@ -20,7 +20,7 @@ from pathlib import Path
 
 RUBBLE_DIR  = Path("/work/pi_rsitaram_umass_edu/tungi/datasets/rubble")
 CITYGS_DIR  = Path("/work/pi_rsitaram_umass_edu/tungi/datasets/cityGSdata/colmap_results/rubble/train/sparse/0")
-OUT_DIR     = Path("/home/tungichen_umass_edu/lctvgs-copy/datasets/rubble_sfm_v2")
+OUT_DIR     = Path("/home/tungichen_umass_edu/lstvgs-copy/datasets/rubble_sfm_v2")
 
 
 def make_image_symlinks(src_dir, dst_dir, cg_names):

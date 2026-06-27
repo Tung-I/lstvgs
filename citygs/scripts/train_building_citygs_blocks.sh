@@ -5,27 +5,27 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=24:00:00
-#SBATCH --output=/work/pi_rsitaram_umass_edu/tungi/lctvgs/results/building_citygs_blocks/slurm_%j.log
-#SBATCH --error=/work/pi_rsitaram_umass_edu/tungi/lctvgs/results/building_citygs_blocks/slurm_%j.log
+#SBATCH --output=/work/pi_rsitaram_umass_edu/tungi/lstvgs/results/building_citygs_blocks/slurm_%j.log
+#SBATCH --error=/work/pi_rsitaram_umass_edu/tungi/lstvgs/results/building_citygs_blocks/slurm_%j.log
 
 set -e
 
 WORK_DIR="/work/pi_rsitaram_umass_edu/tungi"
 CONDA_ENV="$WORK_DIR/conda/envs/gsplat"
 CUDA_DIR="$WORK_DIR/cuda-13.0"
-EXAMPLES="$WORK_DIR/lctvgs/gsplat/examples"
-CITYGS="$WORK_DIR/lctvgs/citygs"
+EXAMPLES="$WORK_DIR/lstvgs/gsplat/examples"
+CITYGS="$WORK_DIR/lstvgs/citygs"
 DATA_DIR="$WORK_DIR/datasets/building"
-COARSE_DIR="$WORK_DIR/lctvgs/results/building_citygs_coarse"
-BLOCK_DIR="$WORK_DIR/lctvgs/results/building_citygs_blocks"
-MERGE_DIR="$WORK_DIR/lctvgs/results/building_citygs_merged"
+COARSE_DIR="$WORK_DIR/lstvgs/results/building_citygs_coarse"
+BLOCK_DIR="$WORK_DIR/lstvgs/results/building_citygs_blocks"
+MERGE_DIR="$WORK_DIR/lstvgs/results/building_citygs_merged"
 
 unset CC CXX
 export CUDAHOSTCXX="$CONDA_ENV/bin/g++"
 export CUDA_HOME="$CUDA_DIR"
 export PATH="$CONDA_ENV/bin:$CUDA_DIR/bin:$PATH"
 export LD_LIBRARY_PATH="$CONDA_ENV/lib:$CUDA_DIR/lib64:$LD_LIBRARY_PATH"
-export PYTHONPATH="$WORK_DIR/lctvgs/gsplat:$PYTHONPATH"
+export PYTHONPATH="$WORK_DIR/lstvgs/gsplat:$PYTHONPATH"
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 mkdir -p "$BLOCK_DIR" "$MERGE_DIR"
@@ -47,7 +47,7 @@ echo "Using coarse PLY: $COARSE_PLY"
 PARTITION_DIR="$COARSE_DIR/partition"
 echo ""
 echo "=== Step 1: Partitioning cameras ($(date)) ==="
-cd "$WORK_DIR/lctvgs"
+cd "$WORK_DIR/lstvgs"
 python citygs/partition_citygs.py \
     --ply-path "$COARSE_PLY" \
     --data-dir "$DATA_DIR" \
@@ -142,7 +142,7 @@ done
 # ── Step 4: Merge blocks ──────────────────────────────────────────────────────
 echo ""
 echo "=== Step 4: Merging blocks ($(date)) ==="
-cd "$WORK_DIR/lctvgs"
+cd "$WORK_DIR/lstvgs"
 MERGED_PLY="$MERGE_DIR/splat_merged.ply"
 python citygs/merge_citygs.py \
     --block-results-dir "$BLOCK_DIR" \

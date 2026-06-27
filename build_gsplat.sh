@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-GSPLAT_SRC="/work/pi_rsitaram_umass_edu/tungi/lctvgs/gsplat"
+GSPLAT_SRC="/work/pi_rsitaram_umass_edu/tungi/lstvgs/gsplat"
 CONDA_ENV="/work/pi_rsitaram_umass_edu/tungi/conda/envs/gsplat"
 CUDA_DIR="/work/pi_rsitaram_umass_edu/tungi/cuda-13.0"
-LOG="/work/pi_rsitaram_umass_edu/tungi/lctvgs/build_gsplat.log"
+LOG="/work/pi_rsitaram_umass_edu/tungi/lstvgs/build_gsplat.log"
 
 exec > >(tee -a "$LOG") 2>&1
 echo "=== gsplat build started at $(date) ==="

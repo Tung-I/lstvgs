@@ -9,7 +9,7 @@
 WORK_DIR="/work/pi_rsitaram_umass_edu/tungi"
 CONDA_ENV="$WORK_DIR/conda/envs/gsplat"
 CUDA_DIR="$WORK_DIR/cuda-13.0"
-LCTVGS="$WORK_DIR/lctvgs"
+LCTVGS="$WORK_DIR/lstvgs"
 EXAMPLES="$LCTVGS/gsplat/examples"
 DATA_DIR="$WORK_DIR/datasets/rubble_citygs"
 BLOCK_DIR="$LCTVGS/results/rubble_citygs_blocks_v10"
