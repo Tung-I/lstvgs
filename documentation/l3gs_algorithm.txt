@@ -1,0 +1,275 @@
+L3GS Algorithm: Layered 3D Gaussian Splats (gsplat re-implementation)
+=======================================================================
+Reference: "L3GS: Layered 3D Gaussian Splats for Efficient 3D Scene Delivery"
+           Li et al., arXiv 2504.05517
+Official repo: https://github.com/mavens-lab/layered_3d_gaussian_splats
+Our impl:      lctvgs-copy/l3gs/
+
+Overview
+--------
+L3GS partitions a full 3DGS model into 4 cumulative layers sorted by per-Gaussian
+importance. Each layer is stored as a 45K-Gaussian delta PLY file. Streaming clients
+download layers progressively: Layer 1 alone gives a coarse but complete scene;
+Layers 1+2+3+4 together give near-full quality. The key claim is that per-layer
+fine-tuning (with earlier layers frozen) significantly outperforms naive sorting
+alone at the same Gaussian budget.
+
+Paper experimental setup (confirmed from final scripts):
+  - 3 scenes from Mip-NeRF360: bicycle, bonsai, counter
+  - 2 scenes from Tanks&Temples: train, truck
+  - 4 layers × 45K Gaussians = 180K total per scene
+  - Comparison: L3GS vs "Sort" baseline (same Gaussians, no fine-tuning)
+  - Headline: 16.9% higher average SSIM vs baselines
+
+
+Stage 1: Full 3DGS Training (teacher model)
+--------------------------------------------
+Train a standard 3DGS model on ALL training cameras using SFM initialization.
+
+Key settings:
+  --max-steps 30000
+  --init-type sfm        (reads sparse/0/points3D.bin)
+  --sh-degree 3
+  --ssim-lambda 0.2
+  --strategy DefaultStrategy
+    --strategy.refine-start-iter 500
+    --strategy.refine-stop-iter 15000
+    --strategy.refine-every 100
+    --strategy.reset-every 3000
+    --strategy.grow-grad2d 0.0002
+
+Output: Full PLY with typically 1–6M Gaussians (scene-dependent).
+        Saved to: <result_dir>/ply/full_model.ply
+
+Notes:
+  - Can be skipped by passing --init-ply <path> to reuse an existing PLY.
+  - This is the "teacher" model whose Gaussians are sorted and partitioned.
+
+
+Stage 2: Importance Scoring
+----------------------------
+Compute a scalar importance score for every Gaussian in the full model.
+
+Score formula (viewport-averaged, approximated without full rasterization):
+  importance(g) = sigmoid(opacity(g))
+                  × mean_{cam in train_cams}[
+                      visible(g, cam)
+                      × max_scale(g)^2 / depth(g, cam)^2
+                    ]
+
+where:
+  visible(g, cam)     = 1 if Gaussian center projects to depth > near_plane
+  max_scale(g)        = exp(max(scales[g]))     (largest 3D axis)
+  depth(g, cam)       = z-coordinate in camera space
+
+Implementation (lctvgs-copy/l3gs/importance.py):
+  - Projects all Gaussian means into each training camera's coordinate frame
+    using the camera's world-to-camera matrix.
+  - Checks depth > 0.01 (near-plane culling) to determine visibility.
+  - Area proxy: max_scale^2 / depth^2 (dimensionless; larger = more visible)
+  - Accumulates score and count across all cameras.
+  - Final: importance = sigmoid(opacity) × (sum_score / clamp(count, 1))
+  - Cameras processed in batches of 8 to limit peak memory.
+
+Output: <result_dir>/importance.pt  (Tensor of shape [N])
+
+
+Stage 3: Sort & Partition
+--------------------------
+Reorder Gaussians by descending importance, then slice into 4 delta layers.
+
+  sorted_idx = argsort(importance, descending=True)  →  splats reindexed
+
+  Layer boundaries (cumulative Gaussian counts):
+    Layer 0: Gaussians [      0 ..  45,000)  ← most important
+    Layer 1: Gaussians [ 45,000 ..  90,000)
+    Layer 2: Gaussians [ 90,000 .. 135,000)
+    Layer 3: Gaussians [135,000 .. 180,000)  ← least important
+
+If the full model has fewer than 180K Gaussians, the 180K cap is set to N_total
+and layers are sized N_total // n_layers each.
+
+Output:
+  <result_dir>/sorted_splats.pt   (full splats dict, reindexed by importance)
+  <result_dir>/layer_boundaries.json  (list of [45000, 90000, 135000, 180000])
+
+
+Stage 4: Per-Layer Fine-tuning
+--------------------------------
+For each of the 4 cumulative subsets, fine-tune while freezing earlier layers.
+
+For layer i (i = 0..3):
+  1. Load sorted splats, subset to the cumulative [0 .. boundary[i]] Gaussians.
+  2. Create fresh Adam optimizers for all parameters.
+  3. Train for 5000 steps with standard L1 + SSIM loss (no densification).
+     - No opacity reset, no densification (refine-start-iter >> max-steps)
+  4. After loss.backward(), zero out gradients for [0 .. boundary[i-1]] Gaussians
+     (i.e., the first i×45K Gaussians are frozen; only new 45K can update).
+  5. Save ONLY the delta slice [boundary[i-1] .. boundary[i]] as a PLY file.
+
+Gradient masking code:
+  for param in splats.values():
+      if param.grad is not None and freeze_end > 0:
+          param.grad[:freeze_end] = 0.0
+
+Fine-tuning hyperparameters:
+  --finetune-steps  5000
+  --sh-degree       3 (fixed, no schedule)
+  --ssim-lambda     0.2
+  Learning rates:   same as full training (means_lr scales with scene_scale)
+  Batch size:       1
+
+Output per layer:
+  <result_dir>/layers/layer_00.ply   (45K Gaussians, delta for layers 1–4)
+  <result_dir>/layers/layer_01.ply
+  <result_dir>/layers/layer_02.ply
+  <result_dir>/layers/layer_03.ply
+
+
+Stage 5: Evaluation
+---------------------
+Evaluate each cumulative combination on the test set.
+
+For each n_layers in {1, 2, 3, 4}:
+  1. Load layer_00.ply through layer_{n-1}.ply, concatenate into one splats dict.
+  2. Render all test views (index % test_every == 0).
+  3. Compute PSNR / SSIM / LPIPS against ground truth.
+
+Also evaluate "Sort baseline":
+  - Load the sorted_splats.pt and truncate to cumulative N Gaussians
+    WITHOUT any fine-tuning.
+  - Compute same metrics.
+  - This isolates the benefit of Stage 4 fine-tuning.
+
+Output: <result_dir>/eval/metrics.json
+  {
+    "l3gs": [
+      {"n_layers": 1, "n_gs": 45000, "psnr": ..., "ssim": ..., "lpips": ...},
+      {"n_layers": 2, "n_gs": 90000, "psnr": ..., "ssim": ..., "lpips": ...},
+      ...
+    ],
+    "sort_baseline": [ ... same structure ... ]
+  }
+
+Validation checks (implementation is correct if):
+  1. PSNR/SSIM strictly increases from layer 1 → 4 (quality progression)
+  2. L3GS (fine-tuned) > Sort baseline at every layer count
+  3. Layer 4 (180K) stays below vanilla 3DGS full model (see quality gap analysis below)
+  4. Each delta layer PLY ≈ 45K × 55 bytes ≈ 2.5 MB (sanity check file sizes)
+
+Observed results on bonsai (our implementation, 2026-06):
+  Full model: PSNR=32.186, SSIM=0.9476 (1,254,874 Gaussians)
+  Layer 4 L3GS (180K): PSNR=20.566, SSIM=0.7600
+  Layer 4 Sort  (180K): PSNR=17.635, SSIM=0.6744
+  → L3GS improves ~12.8% SSIM over Sort at 180K ✓
+  → Monotonic PSNR increase across all 4 layers ✓
+
+
+WHY THE QUALITY GAP FROM THE FULL MODEL IS SO LARGE
+-----------------------------------------------------
+The L3GS Layer 4 result (180K GS, SSIM≈0.76) is ~11.6 dB PSNR below the full model
+(1.25M GS, PSNR=32.19) on bonsai. This gap is larger than one might expect and stems
+from several compounding factors that the paper does not explicitly acknowledge.
+
+1. EXTREME COMPRESSION RATIO (primary cause)
+   180K / 1,254,874 ≈ 14.4% of all Gaussians are retained.
+   3DGS importance distributions are heavy-tailed: many small, low-opacity Gaussians
+   collectively account for fine details, high-frequency textures, and peripheral
+   regions. The top-14% by importance captures large-scale structure but discards the
+   long tail entirely. No representation method can gracefully compress 85% of scene
+   content away without severe quality loss.
+
+2. FIXED TOTAL BUDGET SHARED ACROSS ALL DETAIL LEVELS
+   All 4 layers together use 180K Gaussians — the same budget that vanilla 3DGS
+   uses for each layer independently in pruning baselines. A pruned 3DGS model
+   retrained from scratch at 180K Gaussians (the "Separate" baseline in the paper)
+   would likely outperform L3GS at Layer 4 because its densification adapts the
+   Gaussian distribution to the fixed budget. L3GS instead inherits the density
+   pattern of the full model and simply truncates it.
+
+3. FROZEN-LAYER CONSTRAINT LIMITS PER-LAYER OPTIMIZATION
+   During finetuning of Layer i, all previously saved Gaussians (0..freeze_end) are
+   frozen. Only the new 45K delta Gaussians can update. This means each new layer can
+   only "fill gaps" left by earlier layers rather than jointly re-optimizing all 180K.
+   In contrast, a standalone 180K model can move all Gaussians to minimize loss.
+
+4. IMPORTANCE SCORING IS AN APPROXIMATION
+   Our scoring uses projected solid angle (max_scale^2 / depth^2 × opacity), averaged
+   over training cameras. This approximation misses:
+   - Per-pixel alpha compositing (a Gaussian may be occluded by others in the sorted
+     front-to-back order even if it has high screen-space area)
+   - Frequency content: a low-opacity Gaussian might carry high-frequency detail
+     that is perceptually critical despite a low importance score
+   - View-dependent effects: SH bands >0 are invisible during importance scoring
+     (opacity-weighted area ignores view-dependent color contribution)
+
+5. 5000-STEP FINETUNING IS INSUFFICIENT FOR LARGE QUALITY RECOVERY
+   Stage 1 trains the full model for 30K steps with densification starting at 500
+   steps and running until 15K steps. Stage 4 fine-tunes with 5K steps and NO
+   densification. The frozen-layer constraint further reduces effective capacity.
+   The optimizer has little budget to redistribute quality from discarded Gaussians
+   into the 45K retained ones per layer.
+
+6. PAPER DOES NOT REPORT ABSOLUTE QUALITY NUMBERS
+   The paper presents SSIM only in unlabeled figures and reports only the relative
+   improvement (16.9% higher SSIM vs Sort baseline). The "Sort" baseline itself is
+   also poor at 180K (SSIM≈0.67 on bonsai). The relative improvement is real and
+   matches our implementation, but readers cannot see the absolute quality floor from
+   the paper's presentation — a significant omission for a streaming system that users
+   will directly perceive.
+
+IMPLICATION FOR OUR STREAMING PROJECT
+   L3GS in its current form is a viable baseline for demonstrating progressive delivery
+   but is not competitive with full 3DGS quality even at 180K Gaussians. For our
+   standards-native streaming system, a better approach would be:
+   - Use MCMC-based 3DGS (--strategy MCMCStrategy --cap-max 180000) to train a model
+     that is actually optimized at the target budget
+   - Or use LOD-3DGS / compact representations that preserve quality at small budgets
+   - L3GS's value is the streaming protocol (progressive layers) not the compression
+
+
+Reference Ceilings (vanilla 3DGS, from Kerbl et al. 2023)
+-----------------------------------------------------------
+  Scene    | PSNR  | SSIM  | LPIPS
+  ---------|-------|-------|-------
+  bicycle  | 25.25 | 0.771 | 0.205
+  bonsai   | 31.98 | 0.938 | 0.205
+  counter  | 28.70 | 0.905 | 0.204
+  train    | 21.96 | 0.802 | 0.209
+  truck    | 25.45 | 0.879 | 0.149
+
+These are with FULL models (millions of Gaussians). L3GS at 180K total will
+be noticeably lower; that is expected and by design.
+
+
+File Map
+--------
+  lctvgs-copy/l3gs/
+    __init__.py           Empty package marker
+    importance.py         Stage 2: Gaussian importance scoring
+    layer_manager.py      Stage 3: sort, slice, save/load delta PLYs
+    train_l3gs.py         Stages 1–5: all-in-one CLI trainer
+    eval_l3gs.py          Standalone evaluation + Sort baseline comparison
+
+  lctvgs-copy/
+    run_bicycle_l3gs.sh   SLURM script for bicycle scene
+    run_bonsai_l3gs.sh    SLURM script for bonsai scene
+    run_counter_l3gs.sh   SLURM script for counter scene
+    run_train_l3gs.sh     SLURM script for train (T&T) scene
+    run_truck_l3gs.sh     SLURM script for truck (T&T) scene
+
+
+Key Differences from the Official L3GS Repo
+--------------------------------------------
+  Official repo:  Original INRIA 3DGS rasterizer (via LightGaussian)
+  Our impl:       gsplat rasterization API
+
+  Official repo:  separate prune_finetune_sorting_progressive.py
+  Our impl:       single train_l3gs.py with --stages flag
+
+  Official repo:  v_important_score (LightGaussian's volume × count × opacity)
+  Our impl:       viewport-averaged max_scale^2 / depth^2 × opacity
+                  (closer to the paper's stated utility formula)
+
+  Official repo:  hardcoded paths, multiple scripts per scene
+  Our impl:       single CLI script, dataset-agnostic

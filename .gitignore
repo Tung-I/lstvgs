@@ -1,0 +1,36 @@
+# ============================================================
+# 3DGS artifacts — ignore large binary/data files at any depth
+# Keep: cfg.yml, stats/*.json, eval/*.json, *_info.json, *.log
+# ============================================================
+
+# Checkpoints, PLY exports, renders, videos, TensorBoard
+results/**/ckpts/
+results/**/ply/
+results/**/renders/
+results/**/videos/
+results/**/tb/
+
+# Seed / init PLY copied into block dirs
+results/**/init.ply
+
+# Numpy binary arrays (partition masks, etc.)
+results/**/*.npy
+
+# PyTorch tensors
+results/**/*.pt
+
+# LapisGS / EvoGS layer and level PLY trees
+results/**/layers/
+results/**/levels/
+
+# Datasets — raw images, depth, point clouds; never committed
+datasets/
+
+# Scratch logs emitted during long SLURM runs
+logs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/

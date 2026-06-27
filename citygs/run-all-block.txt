@@ -1,0 +1,118 @@
+  Block 000 (332 cams, 892K init GS):
+  python gsplat/examples/simple_trainer.py default \
+      --disable-viewer \
+      --data-dir /work/pi_rsitaram_umass_edu/tungi/datasets/rubble_citygs \
+      --data-factor 4 --data-type colmap \
+      --result-dir results/rubble_citygs_blocks_v10/block_000 \
+      --test-every 83 --normalize-world-space \
+      --max-steps 30000 --eval-steps 30000 --save-steps 30000 \
+      --save-ply --ply-steps 30000 \
+      --batch-size 1 \
+      --init-type ply --init-ply-path results/rubble_citygs_blocks_v10/block_000/init.ply \
+      --cam-indices-file results/rubble_citygs_blocks_v10/block_000/block_info.json \
+      --sh-degree 3 --sh-degree-interval 1000 --ssim-lambda 0.2 \
+      --strategy.reset-every 100000 --strategy.prune-opa 0.005 \
+      --strategy.grow-grad2d 0.0006 \
+      --packed --lpips-net alex --no-antialiased --no-random-bkgd
+
+  Block 001 (977 cams, 1.97M init GS):
+  python gsplat/examples/simple_trainer.py default \
+      --disable-viewer \
+      --data-dir /work/pi_rsitaram_umass_edu/tungi/datasets/rubble_citygs \
+      --data-factor 4 --data-type colmap \
+      --result-dir results/rubble_citygs_blocks_v10/block_001 \
+      --test-every 83 --normalize-world-space \
+      --max-steps 30000 --eval-steps 30000 --save-steps 30000 \
+      --save-ply --ply-steps 30000 \ 
+      --batch-size 1 \
+      --init-type ply --init-ply-path results/rubble_citygs_blocks_v10/block_001/init.ply \
+      --cam-indices-file results/rubble_citygs_blocks_v10/block_001/block_info.json \
+      --sh-degree 3 --sh-degree-interval 1000 --ssim-lambda 0.2 \
+      --strategy.reset-every 100000 --strategy.prune-opa 0.005 \
+      --strategy.grow-grad2d 0.0006 \
+      --packed --lpips-net alex --no-antialiased --no-random-bkgd
+
+  Block 002 (561 cams, 1.66M init GS):
+  python gsplat/examples/simple_trainer.py default \
+      --disable-viewer \
+      --data-dir /work/pi_rsitaram_umass_edu/tungi/datasets/rubble_citygs \
+      --data-factor 4 --data-type colmap \
+      --result-dir results/rubble_citygs_blocks_v10/block_002 \
+      --test-every 83 --normalize-world-space \
+      --max-steps 30000 --eval-steps 30000 --save-steps 30000 \
+      --save-ply --ply-steps 30000 \
+      --batch-size 1 \
+      --init-type ply --init-ply-path results/rubble_citygs_blocks_v10/block_002/init.ply \
+      --cam-indices-file results/rubble_citygs_blocks_v10/block_002/block_info.json \
+      --sh-degree 3 --sh-degree-interval 1000 --ssim-lambda 0.2 \
+      --strategy.reset-every 100000 --strategy.prune-opa 0.005 \
+      --strategy.grow-grad2d 0.0006 \
+      --packed --lpips-net alex --no-antialiased --no-random-bkgd
+
+  Block 003 (244 cams, 366K init GS):
+  python gsplat/examples/simple_trainer.py default \
+      --disable-viewer \
+      --data-dir /work/pi_rsitaram_umass_edu/tungi/datasets/rubble_citygs \
+      --data-factor 4 --data-type colmap \
+      --result-dir results/rubble_citygs_blocks_v10/block_003 \
+      --test-every 83 --normalize-world-space \
+      --max-steps 30000 --eval-steps 30000 --save-steps 30000 \
+      --save-ply --ply-steps 30000 \
+      --batch-size 1 \
+      --init-type ply --init-ply-path results/rubble_citygs_blocks_v10/block_003/init.ply \
+      --cam-indices-file results/rubble_citygs_blocks_v10/block_003/block_info.json \
+      --sh-degree 3 --sh-degree-interval 1000 --ssim-lambda 0.2 \
+      --strategy.reset-every 100000 --strategy.prune-opa 0.005 \
+      --strategy.grow-grad2d 0.0006 \
+      --packed --lpips-net alex --no-antialiased --no-random-bkgd
+
+  Block 004 (832 cams, 1.72M init GS):
+  python gsplat/examples/simple_trainer.py default \
+      --disable-viewer \
+      --data-dir /work/pi_rsitaram_umass_edu/tungi/datasets/rubble_citygs \
+      --data-factor 4 --data-type colmap \
+      --result-dir results/rubble_citygs_blocks_v10/block_004 \
+      --test-every 83 --normalize-world-space \
+      --max-steps 30000 --eval-steps 30000 --save-steps 30000 \
+      --save-ply --ply-steps 30000 \
+      --batch-size 1 \
+      --init-type ply --init-ply-path results/rubble_citygs_blocks_v10/block_004/init.ply \
+      --cam-indices-file results/rubble_citygs_blocks_v10/block_004/block_info.json \
+      --sh-degree 3 --sh-degree-interval 1000 --ssim-lambda 0.2 \
+      --strategy.reset-every 100000 --strategy.prune-opa 0.005 \
+      --strategy.grow-grad2d 0.0006 \
+      --packed --lpips-net alex --no-antialiased --no-random-bkgd
+
+  Block 005 (345 cams, 916K init GS):
+  python gsplat/examples/simple_trainer.py default \
+      --disable-viewer \
+      --data-dir /work/pi_rsitaram_umass_edu/tungi/datasets/rubble_citygs \
+      --data-factor 4 --data-type colmap \
+      --result-dir results/rubble_citygs_blocks_v10/block_005 \
+      --test-every 83 --normalize-world-space \
+      --max-steps 30000 --eval-steps 30000 --save-steps 30000 \
+      --save-ply --ply-steps 30000 \
+      --batch-size 1 \
+      --init-type ply --init-ply-path results/rubble_citygs_blocks_v10/block_005/init.ply \
+      --cam-indices-file results/rubble_citygs_blocks_v10/block_005/block_info.json \
+      --sh-degree 3 --sh-degree-interval 1000 --ssim-lambda 0.2 \
+      --strategy.reset-every 100000 --strategy.prune-opa 0.005 \
+      --strategy.grow-grad2d 0.0006 \
+      --packed --lpips-net alex --no-antialiased --no-random-bkgd
+
+  Block 007 (47 cams, 247K init GS):
+  python gsplat/examples/simple_trainer.py default \
+      --disable-viewer \
+      --data-dir /work/pi_rsitaram_umass_edu/tungi/datasets/rubble_citygs \
+      --data-factor 4 --data-type colmap \
+      --result-dir results/rubble_citygs_blocks_v10/block_007 \
+      --test-every 83 --normalize-world-space \
+      --max-steps 30000 --eval-steps 30000 --save-steps 30000 \
+      --save-ply --ply-steps 30000 \
+      --batch-size 1 \
+      --init-type ply --init-ply-path results/rubble_citygs_blocks_v10/block_007/init.ply \
+      --cam-indices-file results/rubble_citygs_blocks_v10/block_007/block_info.json \
+      --sh-degree 3 --sh-degree-interval 1000 --ssim-lambda 0.2 \
+      --strategy.reset-every 100000 --strategy.prune-opa 0.005 \
+      --strategy.grow-grad2d 0.0006 \
+      --packed --lpips-net alex --no-antialiased --no-random-bkgd

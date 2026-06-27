@@ -1,0 +1,111 @@
+============================================================
+CityGS Rubble Reproduction Progress Notes
+============================================================
+
+## Status: STARTING FRESH (2026-06-25)
+
+### Root Cause of Past Failures
+All previous coarse/block experiments (v1-v8) trained with empty points3D.txt
+(0 SFM points → random init → ~14 dB PSNR). Now we have the CityGS authors'
+pre-computed COLMAP results with 1.69M SFM points for rubble.
+
+### Dataset Setup Plan
+- Source images: /work/.../datasets/rubble-pixsfm/train/rgbs/ (1657 imgs)
+                 /work/.../datasets/rubble-pixsfm/val/rgbs/   (21 imgs)
+- Source COLMAP: /work/.../datasets/cityGSdata/colmap_results/rubble/train/sparse/0/
+                 (cameras.bin, images.bin=1657 imgs, points3D.bin=1.69M pts)
+- Target dataset: /work/.../datasets/rubble_citygs/
+  * images/ → symlinks to all 1678 images (000001.jpg style naming)
+  * sparse/0/ → merged reconstruction (train 1657+SFM + val 21 poses)
+  * test_every=83 → exactly 21 val frames matching CityGS paper split
+
+### CityGS Pipeline
+1. Coarse: train full-scene 3DGS on all 1657 train cameras, SFM init, 30k steps
+2. Partition: 3×1×3 = 9 blocks via SSIM or expanded-box selection
+3. Block finetune: each block 30k steps, init from coarse PLY, NO opacity reset
+4. Merge + spatial prune
+5. Eval on 21 test views
+
+### Paper Targets (Rubble)
+PSNR: 25.77, SSIM: 0.813, LPIPS: 0.228, #GS: ~4-5M
+
+### Training Settings (from CityGS paper/repo analysis)
+Coarse:
+  - SFM init, 500k points
+  - 30k steps, SH degree 3
+  - ssim_lambda=0.2
+  - means_lr=0.00016 (standard), scales_lr=0.005
+
+Block finetuning:
+  - Init from coarse PLY
+  - 30k steps
+  - strategy.reset-every = 100000 (effectively disabled)
+
+============================================================
+## Step 1: Dataset Setup — DONE ✓
+
+Created /work/.../datasets/rubble_citygs/ with:
+- 1678 images (1657 train + 21 val) via symlinks to rubble-pixsfm/
+- sparse/0/ with CityGS COLMAP binary files (1,694,315 SFM points!)
+- images_4/ → images/ (triggers _resize_image_folder path in Parser)
+- images_4_png/ with pre-made symlinks to rubble/images_4_png/ (no re-downsample needed)
+- test_every=83 → exactly 21 val views = CityGS paper split ✓
+
+Key fix: kept original image IDs in images.bin (don't re-assign IDs or
+points3D.bin track cross-references break pycolmap validation).
+
+## Step 2: Coarse Training — DONE ✓
+
+### Results (30k steps, SFM init, 1.69M → 8.13M Gaussians)
+| Step  | PSNR   | SSIM  | LPIPS | #GS     |
+|-------|--------|-------|-------|---------|
+| 7k    | 20.34  | 0.550 | 0.578 | 4.36M   |
+| 30k   | 24.91  | 0.768 | 0.252 | 8.13M   |
+| Paper | 25.77  | 0.813 | 0.228 | —       |
+
+Gap at 30k: PSNR -0.87 dB, SSIM -0.045, LPIPS +0.024
+Already close to paper targets from coarse alone!
+
+Saved PLY: results/rubble_citygs_coarse_v9/ply/point_cloud_29999.ply (8.13M Gaussians)
+
+### Crash history (for reference)
+- Run 1 (bwzx29vvx): crashed ~step 0 (killed manually, testing)
+- Run 2 (bg6kn6xfd): crashed at step ~1531 — ValueError: imageio can't open 000215.png
+  Root cause: images_4_png/000215.png was 0 bytes (parser's _resize_image_folder
+  silently failed on one image). Fixed by manual PIL resize.
+- Run 3 (bbqz69zjp): SUCCESS — completed 30k steps ✓
+
+## Step 3: Partition (3×1×3 = 9 blocks) — DONE ✓
+
+Cameras per block: [332, 977, 561, 244, 832, 345, 0, 47, 1]
+Block 6 (0 cams) and Block 8 (1 cam) skipped during finetuning.
+Bug fixed: prepare_block_data.py must receive --test-every 83 (default was 8,
+  causing IndexError because train_indices size mismatched camera_mask rows).
+Output: results/rubble_citygs_blocks_v9/block_NNN/block_info.json
+
+## Step 4: Block Finetuning (7 blocks × 30k steps) — IN PROGRESS
+
+Background task ba7ekv005, log: results/rubble_citygs_blocks_v9/blocks.log
+Training blocks 0,1,2,3,4,5,7 sequentially (~20-25 min each → ~2.5-3h total)
+Settings: --init-type ply (coarse PLY), --strategy.reset-every 100000 (no reset)
+
+Next: merge → eval
+
+Previous crash root cause: images_4_png/000215.png was 0 bytes (empty file).
+The parser's _resize_image_folder silently failed on image 000215.jpg during
+the 1st successful run. Fixed by manually resizing via PIL (4608×3456 → 1152×864).
+Now all 1678 PNGs in images_4_png/ are valid.
+
+Current run: background task bbqz69zjp
+Command: python simple_trainer.py default --init-type sfm --max-steps 30000 --test-every 83
+Log: results/rubble_citygs_coarse_v9/coarse.log  (truncated/restarted)
+
+Sanity check (from previous run before it hit bad image):
+- Model initialized with 1,694,315 SFM Gaussians ✓
+- Training speed: ~20-26 it/s → 30k steps ≈ 20-25 min ✓
+- Loss at step 1500: ~0.13-0.15 (good convergence from SFM init) ✓
+- Expected PSNR at 30k steps: 20+ dB
+
+Next: partition → block finetune → merge → eval
+
+============================================================
