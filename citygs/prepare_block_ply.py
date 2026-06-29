@@ -80,7 +80,12 @@ def main():
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--margin", type=float, default=0.15,
                         help="Fractional margin beyond each block's boundary (default 0.15)")
+    parser.add_argument("--background-count", type=int, default=0,
+                        help="Number of Gaussians to randomly sample from outside the block region "
+                             "and append to the init PLY (provides rendering context; default 0 = disabled)")
     args = parser.parse_args()
+
+    rng = np.random.default_rng(seed=42)
 
     # Load partition info
     with open(os.path.join(args.partition_dir, "partition_info.json")) as f:
@@ -130,13 +135,24 @@ def main():
         )
         block_raw = raw[mask]
 
+        # Optionally append background Gaussians from outside the block region
+        if args.background_count > 0:
+            bg_raw = raw[~mask]
+            n_bg = min(args.background_count, len(bg_raw))
+            idx = rng.choice(len(bg_raw), n_bg, replace=False)
+            combined = np.concatenate([block_raw, bg_raw[idx]], axis=0)
+            bg_note = f" + {n_bg:,} bg"
+        else:
+            combined = block_raw
+            bg_note = ""
+
         block_dir = os.path.join(args.output_dir, f"block_{block_id:03d}")
         os.makedirs(block_dir, exist_ok=True)
         out_ply = os.path.join(block_dir, "init.ply")
-        write_ply_gaussians(out_ply, block_raw, props, header_lines)
+        write_ply_gaussians(out_ply, combined, props, header_lines)
 
         print(f"Block {block_id:2d} [{bx},{by},{bz}] ({n_cam:4d} cams): "
-              f"{block_raw.shape[0]:>7,} / {n_verts:,} Gaussians → {out_ply}")
+              f"{block_raw.shape[0]:>7,}{bg_note} = {combined.shape[0]:>7,} / {n_verts:,} Gaussians → {out_ply}")
 
     print("\nDone.")
 

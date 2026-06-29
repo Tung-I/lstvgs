@@ -1,6 +1,6 @@
 # ============================================================
 # 3DGS artifacts — ignore large binary/data files at any depth
-# Keep: cfg.yml, stats/*.json, eval/*.json, *_info.json, *.log
+# Keep: cfg.yml, stats/*.json, eval/*.json, *_info.json
 # ============================================================
 
 # Checkpoints, PLY exports, renders, videos, TensorBoard
@@ -10,8 +10,8 @@ results/**/renders/
 results/**/videos/
 results/**/tb/
 
-# Seed / init PLY copied into block dirs
-results/**/init.ply
+# All PLY point clouds under results (merged.ply, init.ply, ply/ exports, ...)
+results/**/*.ply
 
 # Numpy binary arrays (partition masks, etc.)
 results/**/*.npy
@@ -23,11 +23,22 @@ results/**/*.pt
 results/**/layers/
 results/**/levels/
 
+# Per-run dataset copies/symlinks staged under a result dir (raw images, sparse)
+results/**/data/
+results/**/data_val/
+results/**/images/
+results/**/images_4/
+results/**/images_4_png/
+results/**/sparse/
+
 # Datasets — raw images, depth, point clouds; never committed
 datasets/
 
 # Scratch logs emitted during long SLURM runs
 logs/
+
+# Training/console logs under results — bulky; real metrics live in stats/*.json
+results/**/*.log
 
 # Python
 __pycache__/

@@ -106,6 +106,10 @@ def main():
     parser.add_argument("--lpips-net", default="alex", choices=["alex", "vgg"])
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--bg-color", type=float, default=0.0, help="Background color (0=black)")
+    parser.add_argument("--no-normalize", dest="normalize", action="store_false",
+                        help="Disable world-space normalization (use raw COLMAP frame; required "
+                             "when the ply is in raw frame, e.g. oracle-aligned CityGS merge).")
+    parser.set_defaults(normalize=True)
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -141,7 +145,7 @@ def main():
     colmap_parser = Parser(
         data_dir=args.data_dir,
         factor=args.data_factor,
-        normalize=True,
+        normalize=args.normalize,
         test_every=args.test_every,
     )
     test_indices = [i for i in range(len(colmap_parser.image_names))
