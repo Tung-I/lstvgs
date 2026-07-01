@@ -109,3 +109,67 @@ Sanity check (from previous run before it hit bad image):
 Next: partition → block finetune → merge → eval
 
 ============================================================
+
+
+============================================================
+CityGS OFFICIAL RUN + Phase 4 (block-wise LapisGS LoD) — SUMMARY
+Updated 2026-07-01
+============================================================
+
+## A. CityGS official (gsplat oracle-aligned) — COMPLETE (2026-06-29) ✓ GATE PASS
+Oracle-aligned port of CityGaussian for Rubble, gsplat backend, 9 blocks (3x1x3).
+Merged model: 9.08M Gaussians. Eval on 21 INRIA val views (factor 4, --no-normalize, vgg LPIPS):
+    PSNR 25.777 | SSIM 0.832 | LPIPS 0.276
+Paper target: 25.77 / 0.813 / 0.228  ->  PSNR exact, SSIM beats paper, LPIPS lags.
+This is the flat-CityGS baseline / gate that Phase 4 is measured against.
+
+## B. Phase 4: block-wise LapisGS LoD pyramid + per-LoD merge — COMPLETE (2026-07-01)
+Goal: make each CityGS block a LapisGS layered pyramid (L0 coarse-anchored base, L1-L3
+enhancement at data-factors 32->16->8->4 so L3 == the CityGS factor-4 res), then merge
+per-LoD across all 9 blocks into a streamable scene-level Level-of-Detail representation,
+producing a rate-distortion curve vs the flat CityGS gate.
+
+Tooling (all in citygs/, untracked before this commit):
+  - prep_lapis_block_init.py   : crop coarse PLY to a block's expanded cell -> l0_init.ply
+  - scripts/run_lapis_block.sh : train one block's pyramid (lctvgs LapisGS trainer) + eval
+  - scripts/run_lapis_all_blocks.sh : resumable multi-session driver, self-coordinates via
+                                  atomic mkdir .train_claim locks on shared /work fs
+  - merge_lapis_lod.py         : per-LoD crop-to-owned-cell + concat -> merged_lodL.ply
+  - scripts/finish_lapis_lod.sh: merge + eval each LoD on the 21 val views -> RD curve
+  - eval_lapis_rd.py           : per-block RD table (in-region PSNR vs owned-cell size)
+
+Scene-level RD curve (21 INRIA val views, SAME harness as the flat gate):
+    LoD        #GS     PSNR    SSIM    LPIPS
+      0   2,668,705   17.99   0.356   0.619
+      1   6,556,069   18.96   0.503   0.531
+      2  12,114,777   20.06   0.651   0.431
+      3  18,720,127   20.13   0.707   0.379
+    flat  9,080,000   25.78   0.832   0.276   (CityGS baseline)
+
+## C. FINDINGS / NEGATIVE RESULT
+1. Block-wise LapisGS LoD substantially UNDERPERFORMS flat CityGS. Even the top level
+   LoD3, at ~2x the Gaussian count (18.7M vs 9.08M), is -5.6 dB PSNR (20.13 vs 25.78).
+2. The MERGE IS FAITHFUL, not the culprit: merged LoD3 (20.13 dB) ~= mean per-block
+   in-region L3 PSNR (~20.2 dB). Cropping/tiling loses almost nothing.
+3. The bottleneck is PER-BLOCK LapisGS TRAINING. In-region L3 PSNR by block:
+     000=21.63 001=20.89 002=21.14 003=20.36 004=21.33 005=21.28 006=17.09 007=18.62 008=21.02
+   -> ~4-6 dB below flat CityGS block-finetuning across the board.
+4. ROOT CAUSE = LapisGS progressive freezing. The final model = frozen coarse-anchored L0
+   + frozen L1/L2 anchors + only the newly-added top-layer Gaussians are trainable. Flat
+   CityGS instead jointly finetunes ALL Gaussians per block. That joint freedom is worth
+   ~5 dB and is the inherent cost of the streamable-LoD (frozen-delta) constraint.
+5. Secondary issues:
+   - L2 -> L3 sometimes REGRESSES PSNR (000: 21.94->21.63, 006: 17.47->17.09). The full-res
+     top layer trades PSNR for SSIM/LPIPS (adds high-freq detail / overfits train views).
+   - block006 is pathological: all layers stuck ~17 dB, worst L0 crop -> the coarse model is
+     weak in that spatial region. block006/007 are the two worst blocks.
+
+## D. NEXT IDEAS (deferred)
+  - Un-freeze / jointly refine anchors at each layer (relax strict LapisGS freezing) — most
+    likely to recover the bulk of the gap, at some cost to the clean LoD-delta property.
+  - Better L0: finetune the base rather than freezing a raw coarse crop (helps 006/007).
+  - Investigate the L2->L3 PSNR regression (tune/disable early-stop; reconsider top layer).
+  - Investigate why the coarse model is weak in the block006 region.
+
+Artifacts: results/rubble_lapis_block00{0..8}/ (metrics), results/rubble_lapis_lod/
+(merged_lod0..3.ply + eval_lod*/metrics.json), full log results/rubble_lapis_lod_finish.log.

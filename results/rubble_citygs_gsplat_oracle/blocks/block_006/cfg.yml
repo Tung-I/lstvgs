@@ -9,7 +9,7 @@ bilateral_grid_shape: !!python/tuple
 - 16
 - 16
 - 8
-cam_indices_file: /work/pi_rsitaram_umass_edu/tungi/lstvgs/results/rubble_citygs_gsplat_oracle/blocks/block_008/block_info.json
+cam_indices_file: /work/pi_rsitaram_umass_edu/tungi/lstvgs/results/rubble_citygs_gsplat_oracle/blocks/block_006/block_info.json
 camera_model: pinhole
 ckpt: null
 color_correct_method: affine
@@ -66,7 +66,7 @@ ppisp_use_controller: true
 quats_lr: 0.001
 random_bkgd: false
 render_traj_path: interp
-result_dir: /work/pi_rsitaram_umass_edu/tungi/lstvgs/results/rubble_citygs_gsplat_oracle/blocks/block_008
+result_dir: /work/pi_rsitaram_umass_edu/tungi/lstvgs/results/rubble_citygs_gsplat_oracle/blocks/block_006
 resume_ckpt: null
 save_ply: true
 save_steps:
